@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSC506 Data Structures & Algorithms Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>Data Structures & Algorithms Portfolio</h1>
+            <p class="subtitle">CSC506 Module 8 - Interactive Demonstration System</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="bubble-sort">Bubble Sort</button>
+            <button class="tab-btn" data-tab="quickselect">QuickSelect</button>
+            <button class="tab-btn" data-tab="sets">Set Operations</button>
+            <button class="tab-btn" data-tab="stack">Stack</button>
+            <button class="tab-btn" data-tab="queue">Queue</button>
+            <button class="tab-btn" data-tab="tree">Binary Tree</button>
+            <button class="tab-btn" data-tab="graph">Graph</button>
+            <button class="tab-btn" data-tab="hashtable">Hash Table</button>
+            <button class="tab-btn" data-tab="performance">Performance</button>
+        </nav>
+
+        <!-- Bubble Sort Tab -->
+        <div id="bubble-sort" class="tab-content active">
+            <h2>Bubble Sort Algorithm</h2>
+            <div class="input-section">
+                <label>Enter numbers (comma-separated):</label>
+                <input type="text" id="bubble-input" placeholder="e.g., 64, 34, 25, 12, 22, 11, 90">
+                <button onclick="runBubbleSort()">Sort Array</button>
+            </div>
+            <div class="visualization-area">
+                <canvas id="bubble-canvas"></canvas>
+            </div>
+            <div class="controls">
+                <button id="bubble-play" onclick="playBubbleSort()">▶ Play</button>
+                <button onclick="pauseBubbleSort()">⏸ Pause</button>
+                <button onclick="resetBubbleSort()">↺ Reset</button>
+                <span>Speed: <input type="range" id="bubble-speed" min="1" max="100" value="50"></span>
+            </div>
+            <div id="bubble-stats" class="stats-panel"></div>
+        </div>
+
+        <!-- QuickSelect Tab -->
+        <div id="quickselect" class="tab-content">
+            <h2>QuickSelect Algorithm</h2>
+            <div class="input-section">
+                <label>Enter numbers (comma-separated):</label>
+                <input type="text" id="quickselect-input" placeholder="e.g., 7, 10, 4, 3, 20, 15">
+                <label>Find kth smallest element (k):</label>
+                <input type="number" id="quickselect-k" min="1" placeholder="e.g., 3">
+                <button onclick="runQuickSelect()">Find Element</button>
+            </div>
+            <div id="quickselect-result" class="result-panel"></div>
+            <div id="quickselect-stats" class="stats-panel"></div>
+        </div>
+
+        <!-- Set Operations Tab -->
+        <div id="sets" class="tab-content">
+            <h2>Set Operations</h2>
+            <div class="input-section">
+                <div class="input-group">
+                    <label>Set A:</label>
+                    <input type="text" id="set-a" placeholder="e.g., 1, 2, 3, 4, 5">
+                </div>
+                <div class="input-group">
+                    <label>Set B:</label>
+                    <input type="text" id="set-b" placeholder="e.g., 4, 5, 6, 7, 8">
+                </div>
+                <div class="button-group">
+                    <button onclick="performSetOperation('union')">Union (A ∪ B)</button>
+                    <button onclick="performSetOperation('intersection')">Intersection (A ∩ B)</button>
+                    <button onclick="performSetOperation('difference')">Difference (A - B)</button>
+                    <button onclick="performSetOperation('symmetric-difference')">Symmetric Difference (A △ B)</button>
+                    <button onclick="performSetOperation('is-subset')">Is Subset?</button>
+                    <button onclick="performSetOperation('is-superset')">Is Superset?</button>
+                </div>
+            </div>
+            <div id="set-visualization" class="visualization-area"></div>
+            <div id="set-result" class="result-panel"></div>
+        </div>
+
+        <!-- Stack Tab -->
+        <div id="stack" class="tab-content">
+            <h2>Stack (LIFO)</h2>
+            <div class="input-section">
+                <input type="text" id="stack-input" placeholder="Enter value">
+                <button onclick="stackPush()">Push</button>
+                <button onclick="stackPop()">Pop</button>
+                <button onclick="stackPeek()">Peek</button>
+                <button onclick="stackClear()">Clear</button>
+            </div>
+            <div id="stack-visualization" class="visualization-area"></div>
+            <div id="stack-info" class="stats-panel"></div>
+        </div>
+
+        <!-- Queue Tab -->
+        <div id="queue" class="tab-content">
+            <h2>Queue (FIFO)</h2>
+            <div class="input-section">
+                <input type="text" id="queue-input" placeholder="Enter value">
+                <button onclick="queueEnqueue()">Enqueue</button>
+                <button onclick="queueDequeue()">Dequeue</button>
+                <button onclick="queuePeek()">Peek</button>
+                <button onclick="queueClear()">Clear</button>
+            </div>
+            <div id="queue-visualization" class="visualization-area"></div>
+            <div id="queue-info" class="stats-panel"></div>
+        </div>
+
+        <!-- Tree Tab -->
+        <div id="tree" class="tab-content">
+            <h2>Binary Search Tree</h2>
+            <div class="input-section">
+                <input type="number" id="tree-input" placeholder="Enter value">
+                <button onclick="treeInsert()">Insert</button>
+                <button onclick="treeSearch()">Search</button>
+                <button onclick="treeDelete()">Delete</button>
+                <button onclick="treeClear()">Clear</button>
+            </div>
+            <div class="button-group">
+                <button onclick="treeTraverse('inorder')">Inorder</button>
+                <button onclick="treeTraverse('preorder')">Preorder</button>
+                <button onclick="treeTraverse('postorder')">Postorder</button>
+                <button onclick="treeTraverse('levelorder')">Level Order</button>
+            </div>
+            <div id="tree-visualization" class="visualization-area"></div>
+            <div id="tree-info" class="stats-panel"></div>
+        </div>
+
+        <!-- Graph Tab -->
+        <div id="graph" class="tab-content">
+            <h2>Graph</h2>
+            <div class="input-section">
+                <label>
+                    <input type="checkbox" id="graph-directed"> Directed Graph
+                </label>
+                <button onclick="createGraph()">Create Graph</button>
+            </div>
+            <div class="input-section">
+                <input type="text" id="graph-vertex" placeholder="Vertex name">
+                <button onclick="addGraphVertex()">Add Vertex</button>
+            </div>
+            <div class="input-section">
+                <input type="text" id="graph-from" placeholder="From">
+                <input type="text" id="graph-to" placeholder="To">
+                <input type="number" id="graph-weight" placeholder="Weight" value="1">
+                <button onclick="addGraphEdge()">Add Edge</button>
+            </div>
+            <div class="button-group">
+                <input type="text" id="graph-start" placeholder="Start vertex">
+                <button onclick="graphDFS()">DFS</button>
+                <button onclick="graphBFS()">BFS</button>
+                <input type="text" id="graph-end" placeholder="End vertex">
+                <button onclick="graphShortestPath()">Shortest Path</button>
+                <button onclick="graphHasCycle()">Check Cycle</button>
+            </div>
+            <div id="graph-visualization" class="visualization-area"></div>
+            <div id="graph-info" class="stats-panel"></div>
+        </div>
+
+        <!-- Hash Table Tab -->
+        <div id="hashtable" class="tab-content">
+            <h2>Hash Table</h2>
+            <div class="input-section">
+                <label>Table Size:</label>
+                <input type="number" id="hashtable-size" value="10">
+                <button onclick="createHashTable()">Create Table</button>
+            </div>
+            <div class="input-section">
+                <input type="text" id="hashtable-key" placeholder="Key">
+                <input type="text" id="hashtable-value" placeholder="Value">
+                <button onclick="hashTableInsert()">Insert</button>
+                <button onclick="hashTableGet()">Get</button>
+                <button onclick="hashTableDelete()">Delete</button>
+            </div>
+            <div id="hashtable-visualization" class="visualization-area"></div>
+            <div id="hashtable-stats" class="stats-panel"></div>
+        </div>
+
+        <!-- Performance Tab -->
+        <div id="performance" class="tab-content">
+            <h2>Performance Analysis</h2>
+            <div class="button-group">
+                <button onclick="compareSorts()">Compare Sorting Algorithms</button>
+                <button onclick="analyzeQuickSelect()">Analyze QuickSelect</button>
+                <button onclick="analyzeSetOperations()">Set Operations Performance</button>
+                <button onclick="analyzeMemory()">Memory Analysis</button>
+            </div>
+            <div id="performance-charts" class="visualization-area"></div>
+            <div id="performance-results" class="stats-panel"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bubble-sort-viz.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/data-structures-viz.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/performance-viz.js') }}"></script>
+</body>
+</html>
+
