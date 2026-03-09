@@ -17,6 +17,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from models.hash_table import HashTable
 from models.set_operations import Set
 from models.sorting import QuickSelect
+from services.decision_topics import (
+    boost_intent_scores,
+    detect_decision_topics,
+    follow_up_questions,
+)
+from services.disclaimers import get_disclosure_payload
 
 
 @dataclass(frozen=True)
@@ -54,22 +60,27 @@ SIGN_PROFILES: Dict[str, SignProfile] = {
 INTENT_KEYWORDS: Dict[str, List[str]] = {
     "career": [
         "job", "career", "work", "promotion", "boss", "team", "interview", "business", "project", "goal",
+        "entrepreneur", "company", "market", "resume", "role", "startup", "switch",
     ],
     "love": [
         "love", "relationship", "partner", "dating", "marriage", "married", "romance", "breakup", "trust", "communication",
+        "marry", "wife", "husband", "commitment", "engagement",
     ],
     "money": [
         "money", "finance", "salary", "budget", "debt", "spend", "saving", "invest", "purchase", "income",
+        "loan", "house", "property", "mortgage", "wealth", "cashflow",
     ],
     "health": [
         "health", "stress", "sleep", "energy", "exercise", "diet", "burnout", "anxiety", "routine", "rest",
+        "medical", "therapy", "recovery",
     ],
     "family": [
         "baby", "child", "children", "pregnant", "pregnancy", "conceive", "fertility",
-        "family", "parent", "parenting", "mother", "father",
+        "family", "parent", "parenting", "mother", "father", "adoption",
     ],
     "general": [
         "decision", "stuck", "confused", "future", "path", "choice", "timing", "direction", "change",
+        "plan",
     ],
 }
 
@@ -434,10 +445,15 @@ def intent_overlap_scores(tokens: List[str]) -> Dict[str, int]:
     return scores
 
 
-def detect_intent(statement: str) -> Tuple[str, int, Dict[str, int]]:
+def detect_intent(
+    statement: str,
+    topic_hits: Optional[List[Dict[str, Any]]] = None,
+) -> Tuple[str, int, Dict[str, int]]:
     lowered = statement.lower()
     tokens = tokenize(statement)
     scores = intent_overlap_scores(tokens)
+    if topic_hits:
+        scores = boost_intent_scores(scores, topic_hits, boost_per_match=2)
 
     for intent, phrases in INTENT_PHRASES.items():
         for phrase in phrases:
@@ -459,9 +475,19 @@ def detect_intent(statement: str) -> Tuple[str, int, Dict[str, int]]:
     return best_intent, confidence, scores
 
 
-def top_factors(intent: str, tokens: List[str], k: int = 3) -> List[str]:
+def top_factors(
+    intent: str,
+    tokens: List[str],
+    topic_hits: Optional[List[Dict[str, Any]]] = None,
+    k: int = 3,
+) -> List[str]:
     keyword_pool = set(INTENT_KEYWORDS.get(intent, []))
     matched = [t for t in tokens if t in keyword_pool]
+    if topic_hits:
+        for hit in topic_hits:
+            if hit.get("intent") == intent:
+                matched.extend(hit.get("factors", []))
+
     if not matched:
         defaults = {
             "family": ["timing", "health readiness", "financial readiness"],
@@ -501,10 +527,11 @@ def build_recommendation_pool(
     sign: str,
     intent: str,
     tokens: List[str],
+    topic_hits: Optional[List[Dict[str, Any]]] = None,
     expert_rule_hits: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Tuple[str, int]]:
     profile = SIGN_PROFILES[sign]
-    factors = top_factors(intent, tokens, 4)
+    factors = top_factors(intent, tokens, topic_hits=topic_hits, k=4)
 
     pool = [
         (
@@ -545,9 +572,16 @@ def build_recommendations(
     sign: str,
     intent: str,
     tokens: List[str],
+    topic_hits: Optional[List[Dict[str, Any]]] = None,
     expert_rule_hits: Optional[List[Dict[str, Any]]] = None,
 ) -> List[str]:
-    message_pool = build_recommendation_pool(sign, intent, tokens, expert_rule_hits=expert_rule_hits)
+    message_pool = build_recommendation_pool(
+        sign,
+        intent,
+        tokens,
+        topic_hits=topic_hits,
+        expert_rule_hits=expert_rule_hits,
+    )
     top = quickselect_top_k(message_pool, 3)
     return [item[0] for item in top]
 
@@ -582,18 +616,22 @@ def build_analysis(
     external_api_result: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     tokens = tokenize(statement)
-    intent, confidence, raw_scores = detect_intent(statement)
+    topic_hits = detect_decision_topics(statement, limit=3)
+    intent, confidence, raw_scores = detect_intent(statement, topic_hits=topic_hits)
     profile = SIGN_PROFILES[sign]
     expert_rule_hits = evaluate_expert_rules(intent, profile.element, confidence)
-    matched_factors = top_factors(intent, tokens, 3)
+    matched_factors = top_factors(intent, tokens, topic_hits=topic_hits, k=3)
     recommendation_pool = build_recommendation_pool(
         sign,
         intent,
         tokens,
+        topic_hits=topic_hits,
         expert_rule_hits=expert_rule_hits,
     )
     selected_pairs = quickselect_top_k(recommendation_pool, 3)
     symbolic_plan = symbolic_plan_for_intent(intent)
+    followups = follow_up_questions(intent, topic_hits)
+    disclosures = get_disclosure_payload()
 
     update_intent_memory(memory, intent)
     pattern = session_pattern(memory)
@@ -612,6 +650,8 @@ def build_analysis(
         "models.set_operations.Set for keyword-overlap intent scoring",
         "models.sorting.QuickSelect for top recommendation ranking",
         "models.hash_table.HashTable for per-session topic memory",
+        "services.decision_topics for topic-detection score boosts and follow-up prompts",
+        "services.disclaimers for ethics/privacy/source transparency notices",
         "collections.deque for uninformed BFS symbolic planning",
         "heapq for informed A* symbolic planning",
         "Python datetime for date/time normalization and zodiac-by-date mapping",
@@ -625,13 +665,16 @@ def build_analysis(
     pipeline_steps = [
         "Normalize user profile fields (date/time).",
         "Determine sign source: explicit sign, sign in statement, or zodiac from birth date.",
+        "Detect decision topics from statement phrases and map them to decision intents.",
         "Tokenize statement with regex.",
+        "Boost intent scores using matched decision-topic hints.",
         "Apply expert-system rules over intent, sign element, and confidence.",
         "Compute overlap score between statement tokens and each intent keyword set.",
         "Choose highest-scoring intent and map score to confidence.",
         "Generate symbolic decision plan and search for best path (BFS and A*).",
         "Generate recommendation pool from sign element + modality + caution rules.",
         "Select top 3 recommendations via QuickSelect-based ranking.",
+        "Generate follow-up questions to reduce ambiguity in next user turn.",
         "Update session memory using hash-table counters.",
     ]
     if external_api.get("used"):
@@ -661,6 +704,7 @@ def build_analysis(
                 "ELEMENT_GUIDANCE",
                 "MODALITY_GUIDANCE",
                 "EXPERT_RULES",
+                "services.decision_topics.TOPIC_HINTS",
             ],
             "planning_graph_type": "State-action symbolic graph",
             "memory_store": "HashTable per session",
@@ -668,6 +712,7 @@ def build_analysis(
         "intent": intent,
         "confidence": confidence,
         "signal_scores": raw_scores,
+        "decision_topics": topic_hits,
         "matched_factors": matched_factors,
         "expert_rule_hits": expert_rule_hits,
         "symbolic_plan": symbolic_plan,
@@ -679,6 +724,8 @@ def build_analysis(
             for i, (msg, score) in enumerate(selected_pairs)
         ],
         "session_pattern": pattern,
+        "follow_up_questions": followups,
+        "disclosures": disclosures,
         "external_api": external_api,
         "libraries_and_modules": libraries_and_modules,
         "pipeline_steps": pipeline_steps,
@@ -694,6 +741,8 @@ def format_analysis_text(analysis: Dict[str, Any]) -> str:
     recommendations = analysis["selected_recommendations"]
     symbolic_plan = analysis.get("symbolic_plan", {})
     external_api = analysis.get("external_api", {})
+    topic_hits = analysis.get("decision_topics", [])
+    disclosures = analysis.get("disclosures", {})
     coordinates = (external_api.get("coordinates") or {}) if external_api else {}
 
     lines = [
@@ -719,6 +768,12 @@ def format_analysis_text(analysis: Dict[str, Any]) -> str:
         f"Detected focus: {analysis['intent'].title()} (confidence {analysis['confidence']}%)",
         f"Signal scores: {score_line}",
         (
+            "Detected decision topics: "
+            + ", ".join(f"{hit.get('label')} ({hit.get('keyword')})" for hit in topic_hits)
+            if topic_hits
+            else "Detected decision topics: none"
+        ),
+        (
             "Suggested decision path: "
             + " -> ".join(symbolic_plan.get("selected_plan_actions", [])[:4])
             if symbolic_plan.get("selected_plan_actions")
@@ -734,6 +789,9 @@ def format_analysis_text(analysis: Dict[str, Any]) -> str:
 
     if analysis["intent"] in {"family", "health"}:
         lines.append("Note: This is reflective guidance and not medical advice.")
+
+    if disclosures.get("short_disclaimer"):
+        lines.append(f"Disclaimer: {disclosures['short_disclaimer']}")
 
     if analysis["session_pattern"]:
         lines.append(analysis["session_pattern"])
@@ -780,8 +838,11 @@ def resolve_sign(user_text: str, date_of_birth: str = "") -> Optional[str]:
 
 
 def run_cli() -> None:
+    disclosures = get_disclosure_payload()
+
     print("Astrology AI Decision Support Assistant")
     print("Please enter your profile details first, then ask your question.")
+    print(f"Note: {disclosures['short_disclaimer']}")
     print("Type 'exit' to quit.\n")
 
     full_name = input("Full name: ").strip()
@@ -818,13 +879,23 @@ def run_cli() -> None:
     memory = HashTable(size=16)
 
     while True:
-        user_text = input("You: ").strip()
+        user_text = input("You (your question): ").strip()
         if not user_text:
             print("Please enter a statement or question.\n")
             continue
         if user_text.lower() in {"exit", "quit"}:
             print("Goodbye.")
             break
+        if user_text.lower() in {"help", "examples"}:
+            print("Examples:")
+            print("- Should I switch my job this year?")
+            print("- Should I get married this year?")
+            print("- Should I have a baby this year?\n")
+            continue
+        if user_text.lower() in {"disclaimer", "privacy"}:
+            print(disclosures["main_disclaimer"])
+            print(disclosures["data_privacy_notice"] + "\n")
+            continue
 
         sign = resolve_sign(user_text, user_profile.date_of_birth)
         if sign is None:

@@ -15,6 +15,7 @@ from astrology_ai import (
     zodiac_from_birthdate,
 )
 from models.hash_table import HashTable
+from services.disclaimers import get_disclosure_payload
 from services.geocoding import geocode_with_nominatim
 
 astrology_bp = Blueprint("astrology", __name__)
@@ -33,6 +34,11 @@ def get_memory(session_id: str) -> HashTable:
 @astrology_bp.route("/signs", methods=["GET"])
 def list_signs():
     return jsonify({"signs": sorted(SIGN_PROFILES.keys())}), 200
+
+
+@astrology_bp.route("/disclosures", methods=["GET"])
+def disclosures():
+    return jsonify({"success": True, "disclosures": get_disclosure_payload()}), 200
 
 
 @astrology_bp.route("/analyze", methods=["POST"])
@@ -144,13 +150,16 @@ def analyze():
                     "confidence": analysis["confidence"],
                     "knowledge_representation": analysis["knowledge_representation"],
                     "signal_scores": analysis["signal_scores"],
+                    "decision_topics": analysis["decision_topics"],
                     "matched_factors": analysis["matched_factors"],
                     "expert_rule_hits": analysis["expert_rule_hits"],
                     "symbolic_plan": analysis["symbolic_plan"],
+                    "follow_up_questions": analysis["follow_up_questions"],
                     "selected_recommendations": analysis["selected_recommendations"],
                     "recommendation_pool": analysis["recommendation_pool"],
                     "pipeline_steps": analysis["pipeline_steps"],
                     "libraries_and_modules": analysis["libraries_and_modules"],
+                    "disclosures": analysis["disclosures"],
                     "external_api": analysis["external_api"],
                 },
             }

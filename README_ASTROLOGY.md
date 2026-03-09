@@ -4,8 +4,9 @@
 `astrology_ai.py` is a self-executable Python CLI assistant that:
 - accepts a user statement in natural language,
 - identifies likely decision focus (`career`, `love`, `money`, `health`, `family`, `general`),
+- detects decision topics/phrases (for example: `baby`, `marriage`, `job`, `finance`) and uses them to reduce ambiguity,
 - uses astrology-style logic (zodiac profile + element + modality),
-- returns structured decision-support guidance.
+- returns structured decision-support guidance plus follow-up questions and disclosure notices.
 
 ## Course-method usage (at least 2 modules)
 This app uses course-style techniques from your project code:
@@ -13,6 +14,7 @@ This app uses course-style techniques from your project code:
 - `QuickSelect` algorithm for ranking/selecting top guidance (`models/sorting.py`)
 - `HashTable` for session memory of repeated themes (`models/hash_table.py`)
 - Uninformed search (`BFS`) and informed search (`A*`) for symbolic decision planning (`astrology_ai.py`)
+- Expert-system style topic mapping for phrase-to-intent guidance (`services/decision_topics.py`)
 
 ## Requirement Mapping (Portfolio Rubric)
 - Fully-functioning AI decision-support program: yes (CLI + Flask UI).
@@ -49,6 +51,20 @@ python astrology_ai.py
 
 4. Type `exit` to quit.
 
+## Project Structure (Cleaned)
+- `app.py` -> Flask UI entry point
+- `astrology_ai.py` -> CLI entry point + core reasoning engine
+- `controllers/astrology_controller.py` -> API layer for UI
+- `services/geocoding.py` -> external geocoding API integration
+- `services/decision_topics.py` -> migrated topic detection + intent boost + follow-up question generation
+- `services/disclaimers.py` -> migrated disclaimer/privacy/source messaging
+- `models/hash_table.py` -> session memory data structure
+- `models/set_operations.py` -> set-based intent matching
+- `models/sorting.py` -> QuickSelect ranking utility
+- `templates/astrology.html` -> single web interface
+- `static/css/astrology.css` -> UI styling
+- `static/js/astrology.js` -> browser logic
+
 ## Browser UI mode
 1. Start Flask app:
 
@@ -62,6 +78,8 @@ python app.py
 
 3. Submit a statement in the form.  
 The page calls `POST /api/astrology/analyze` and displays the generated guidance.
+Additional utility endpoint:
+- `GET /api/astrology/disclosures` -> returns disclaimer/privacy/source notes used by the app
 Required fields in UI/API:
 - full name
 - date of birth (`YYYY-MM-DD` in web UI; API also accepts `MM/DD/YYYY`)
@@ -75,9 +93,12 @@ Validation behavior:
 - web page shows a normalized input preview before analysis
 - web result includes a transparent reasoning trace:
   - sign source (manual, statement text, or birth date)
+  - matched decision topics and their mapped intent
   - keyword signal scores
+  - suggested follow-up questions
   - ranking scores for selected recommendations
   - exact modules/libraries used
+  - ethical disclaimer/privacy/source notes
   - explicit external API usage status and request metadata
 
 ## External API used
@@ -88,6 +109,7 @@ Validation behavior:
   - HTTP status
   - response time
   - coordinates
+  - top geocode result metadata (display name/type/importance)
   - whether result came from cache
 
 Note: internet access is required for live geocoding. If the request fails, the app still returns guidance and shows the geocoding failure details.
@@ -100,3 +122,9 @@ Note: internet access is required for live geocoding. If the request fails, the 
 - Essay support files:
   - `ESSAY_OUTLINE.md` (2-4 page structure for required write-up)
   - `REFERENCES_APA.md` (APA-formatted reference suggestions)
+
+## Migration note
+This project now includes selected migration items from `C:\Users\prose\PycharmProjects\CSC510_M8`:
+- topic-detection patterns adapted for decision-support prompts
+- disclaimer/privacy/source transparency patterns
+- expanded explainability output (topics, follow-up questions, and API details)

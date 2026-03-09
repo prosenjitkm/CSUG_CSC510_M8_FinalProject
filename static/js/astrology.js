@@ -49,8 +49,16 @@ function renderAnalysisDetails(details) {
         .map((r) => `<li>#${r.rank} (score ${r.score}): ${r.message}</li>`)
         .join("");
 
+    const topicRows = (details.decision_topics || [])
+        .map((t) => `<li><strong>${t.label}</strong> (keyword: ${t.keyword}, intent: ${t.intent})</li>`)
+        .join("");
+
     const ruleRows = (details.expert_rule_hits || [])
         .map((r) => `<li><strong>${r.id}</strong>: ${r.conclusion}</li>`)
+        .join("");
+
+    const followupRows = (details.follow_up_questions || [])
+        .map((q) => `<li>${q}</li>`)
         .join("");
 
     const moduleRows = (details.libraries_and_modules || [])
@@ -74,6 +82,8 @@ function renderAnalysisDetails(details) {
     const astar = plan.informed_a_star || {};
 
     const external = details.external_api || {};
+    const topResult = external.top_result || {};
+    const disclosures = details.disclosures || {};
     const coords = external.coordinates
         ? `${external.coordinates.latitude}, ${external.coordinates.longitude}`
         : "Unavailable";
@@ -93,6 +103,10 @@ function renderAnalysisDetails(details) {
                 <p><strong>Duration:</strong> ${external.duration_ms ?? "N/A"} ms</p>
                 <p><strong>Cached Result:</strong> ${external.cached ? "Yes" : "No"}</p>
                 <p><strong>Coordinates:</strong> ${coords}</p>
+                <p><strong>Top Geocode Result:</strong> ${topResult.display_name || "N/A"}</p>
+                <p><strong>Top Result Type:</strong> ${topResult.type || "N/A"} (importance: ${topResult.importance ?? "N/A"})</p>
+                <h4>Decision Topic Matches</h4>
+                <ul>${topicRows || "<li>None</li>"}</ul>
                 <h4>Signal Scores</h4>
                 <ul>${scoreRows}</ul>
                 <h4>Matched Factors</h4>
@@ -101,6 +115,8 @@ function renderAnalysisDetails(details) {
                 <ul>${recRows}</ul>
                 <h4>Expert Rule Matches</h4>
                 <ul>${ruleRows || "<li>No rules triggered</li>"}</ul>
+                <h4>Suggested Follow-up Questions</h4>
+                <ul>${followupRows || "<li>No follow-up questions generated</li>"}</ul>
                 <h4>Symbolic Plan (${plan.selected_method || "N/A"})</h4>
                 <ul>${planRows || "<li>No plan generated</li>"}</ul>
                 <p><strong>Search Stats:</strong> BFS expanded ${bfs.nodes_expanded ?? "N/A"} nodes, A* expanded ${astar.nodes_expanded ?? "N/A"} nodes.</p>
@@ -112,6 +128,10 @@ function renderAnalysisDetails(details) {
                 <ul>${symbolRows}</ul>
                 <h4>Pipeline Steps</h4>
                 <ol>${stepRows}</ol>
+                <h4>Disclosures</h4>
+                <p><strong>Main:</strong> ${disclosures.main_disclaimer || "N/A"}</p>
+                <p><strong>Privacy:</strong> ${disclosures.data_privacy_notice || "N/A"}</p>
+                <p><strong>Sources Note:</strong> ${disclosures.sources_note || "N/A"}</p>
             </div>
         </details>
     `;
@@ -183,6 +203,7 @@ async function analyzeAstrology() {
         const detailsHtml = renderAnalysisDetails(data.analysis_details);
         const confidence = data.analysis_details?.confidence || 0;
         const intent = toTitleCase(data.analysis_details?.intent || "general");
+        const shortDisclaimer = data.analysis_details?.disclosures?.short_disclaimer || "";
         renderMessage(
             "success",
             `<div class="result-meta">
@@ -194,6 +215,7 @@ async function analyzeAstrology() {
             <div class="confidence-bar"><span style="width: ${confidence}%;"></span></div>
             <p style="margin-top: 8px;"><strong>Confidence:</strong> ${confidence}%</p>
              <div style="margin-top: 10px;">${pretty}</div>
+             ${shortDisclaimer ? `<p style="margin-top: 10px;"><strong>Disclaimer:</strong> ${shortDisclaimer}</p>` : ""}
              ${detailsHtml}`
         );
     } catch (error) {

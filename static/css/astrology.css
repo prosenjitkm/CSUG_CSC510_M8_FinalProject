@@ -18,6 +18,11 @@ body {
     font-family: "Manrope", "Segoe UI", sans-serif;
 }
 
+.container {
+    width: min(1300px, 100% - 24px);
+    margin-inline: auto;
+}
+
 .astro-bg {
     position: fixed;
     inset: 0;
@@ -68,7 +73,6 @@ body {
 .astro-shell {
     position: relative;
     z-index: 1;
-    max-width: 1300px;
     padding: 28px 20px 40px;
 }
 
@@ -129,6 +133,7 @@ body {
 }
 
 .astro-panel label {
+    display: block;
     color: #eff6ff;
     font-weight: 600;
 }
@@ -143,6 +148,12 @@ body {
     border-radius: 12px;
     padding: 12px 14px;
     margin-top: 8px;
+}
+
+.astro-panel button {
+    border: none;
+    cursor: pointer;
+    padding: 11px 16px;
 }
 
 .astro-panel textarea {
@@ -214,6 +225,46 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 12px;
     padding: 14px;
+}
+
+.result-panel {
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    color: var(--astro-subtext);
+}
+
+.stat-value {
+    color: #f8fcff;
+    font-weight: 700;
+}
+
+.loading {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .astro-preview .stat-item {
