@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astrology AI Decision Support</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/astrology.css') }}">
+</head>
+<body>
+<div class="astro-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+</div>
+<div class="container astro-shell">
+    <header class="astro-hero">
+        <div>
+            <h1>Astrology AI Compass</h1>
+            <p>Modern astrology decision support with transparent reasoning.</p>
+        </div>
+        <a href="/" class="astro-link">Astrology Home</a>
+    </header>
+
+    <main class="astro-grid">
+        <section class="astro-panel">
+            <h2>Ask The Assistant</h2>
+            <p class="astro-muted">Fill the profile once, then ask your question.</p>
+
+            <label for="astro-full-name">Full name</label>
+            <input id="astro-full-name" type="text" placeholder="Jane Doe" required>
+
+            <label for="astro-dob" class="astro-spacer">Date of birth</label>
+            <input id="astro-dob" type="date" required>
+            <p class="astro-hint">Format sent: YYYY-MM-DD</p>
+
+            <label for="astro-tob" class="astro-spacer">Time of birth</label>
+            <input id="astro-tob" type="time" required step="60">
+            <p class="astro-hint">Format sent: HH:MM (24-hour)</p>
+
+            <label for="astro-location" class="astro-spacer">Location of birth</label>
+            <input id="astro-location" type="text" placeholder="Dhaka, Bangladesh" required>
+
+            <label for="astro-statement" class="astro-spacer">Your statement or question</label>
+            <textarea id="astro-statement" rows="4" placeholder="Example: Should I switch my job this year?"></textarea>
+            <div class="quick-prompts">
+                <button type="button" class="quick-prompt" data-prompt="Should I switch my job this year?">Career</button>
+                <button type="button" class="quick-prompt" data-prompt="Should I get married this year?">Love</button>
+                <button type="button" class="quick-prompt" data-prompt="Should I have a baby this year?">Family</button>
+                <button type="button" class="quick-prompt" data-prompt="How should I improve my finances this year?">Money</button>
+            </div>
+
+            <label for="astro-sign" class="astro-spacer">Zodiac sign (optional)</label>
+            <select id="astro-sign">
+                <option value="">Auto-detect from statement or birth date</option>
+                <option value="aries">Aries</option>
+                <option value="taurus">Taurus</option>
+                <option value="gemini">Gemini</option>
+                <option value="cancer">Cancer</option>
+                <option value="leo">Leo</option>
+                <option value="virgo">Virgo</option>
+                <option value="libra">Libra</option>
+                <option value="scorpio">Scorpio</option>
+                <option value="sagittarius">Sagittarius</option>
+                <option value="capricorn">Capricorn</option>
+                <option value="aquarius">Aquarius</option>
+                <option value="pisces">Pisces</option>
+            </select>
+
+            <label for="astro-session" class="astro-spacer">Session ID (optional)</label>
+            <input id="astro-session" type="text" placeholder="default">
+
+            <div class="astro-actions">
+                <button id="astro-submit">Analyze</button>
+            </div>
+        </section>
+
+        <section class="astro-panel">
+            <h2>Normalized Input Preview</h2>
+            <div id="astro-preview" class="astro-preview">
+                Normalized input preview will appear here.
+            </div>
+
+            <h2 class="astro-result-title">Astrology Guidance</h2>
+            <div id="astro-result" class="result-panel astro-result-panel"></div>
+        </section>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/astrology.js') }}"></script>
+</body>
+</html>
