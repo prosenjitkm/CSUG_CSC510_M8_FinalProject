@@ -37,6 +37,7 @@ class SignProfile:
 @dataclass(frozen=True)
 class UserProfile:
     full_name: str
+    gender: str
     date_of_birth: str
     time_of_birth: str
     location_of_birth: str
@@ -138,6 +139,17 @@ MODALITY_GUIDANCE: Dict[str, str] = {
     "cardinal": "You are strongest when initiating action. Start with a clear first step today.",
     "fixed": "You are strongest with persistence. Stay consistent, but be open to one strategic adjustment.",
     "mutable": "You are strongest when adapting. Stay flexible, but keep one non-negotiable priority.",
+}
+
+GENDER_FOCUS_HINTS: Dict[str, Dict[str, str]] = {
+    "male": {
+        "family": "Traditional male-chart note: emphasize long-term provision planning, partner support, and role clarity before major family decisions.",
+        "love": "Traditional male-chart note: prioritize commitment clarity, communication consistency, and shared expectations.",
+    },
+    "female": {
+        "family": "Traditional female-chart note: include personal health readiness, support systems, and shared timeline planning before major family decisions.",
+        "love": "Traditional female-chart note: prioritize emotional safety, value alignment, and communication clarity before commitment.",
+    },
 }
 
 SIGN_ALIASES = {name: name for name in SIGN_PROFILES.keys()}
@@ -389,6 +401,15 @@ def normalize_birthtime(time_text: str) -> Optional[str]:
     return parsed.strftime("%H:%M")
 
 
+def normalize_gender(gender_text: str) -> Optional[str]:
+    value = (gender_text or "").strip().lower()
+    if value in {"m", "male"}:
+        return "male"
+    if value in {"f", "female"}:
+        return "female"
+    return None
+
+
 def zodiac_from_birthdate(date_text: str) -> Optional[str]:
     dob = parse_birthdate(date_text)
     if not dob:
@@ -527,6 +548,7 @@ def build_recommendation_pool(
     sign: str,
     intent: str,
     tokens: List[str],
+    gender: str = "",
     topic_hits: Optional[List[Dict[str, Any]]] = None,
     expert_rule_hits: Optional[List[Dict[str, Any]]] = None,
 ) -> List[Tuple[str, int]]:
@@ -565,6 +587,10 @@ def build_recommendation_pool(
     for rule in expert_rule_hits or []:
         pool.append((f"Expert rule {rule['id']}: {rule['conclusion']}", int(rule.get("weight", 6))))
 
+    gender_hint = GENDER_FOCUS_HINTS.get(gender or "", {}).get(intent)
+    if gender_hint:
+        pool.append((gender_hint, 6))
+
     return pool
 
 
@@ -572,6 +598,7 @@ def build_recommendations(
     sign: str,
     intent: str,
     tokens: List[str],
+    gender: str = "",
     topic_hits: Optional[List[Dict[str, Any]]] = None,
     expert_rule_hits: Optional[List[Dict[str, Any]]] = None,
 ) -> List[str]:
@@ -579,6 +606,7 @@ def build_recommendations(
         sign,
         intent,
         tokens,
+        gender=gender,
         topic_hits=topic_hits,
         expert_rule_hits=expert_rule_hits,
     )
@@ -619,12 +647,15 @@ def build_analysis(
     topic_hits = detect_decision_topics(statement, limit=3)
     intent, confidence, raw_scores = detect_intent(statement, topic_hits=topic_hits)
     profile = SIGN_PROFILES[sign]
+    gender = user_profile.gender if user_profile else ""
+    gender_guidance = GENDER_FOCUS_HINTS.get(gender, {}).get(intent)
     expert_rule_hits = evaluate_expert_rules(intent, profile.element, confidence)
     matched_factors = top_factors(intent, tokens, topic_hits=topic_hits, k=3)
     recommendation_pool = build_recommendation_pool(
         sign,
         intent,
         tokens,
+        gender=gender,
         topic_hits=topic_hits,
         expert_rule_hits=expert_rule_hits,
     )
@@ -663,12 +694,13 @@ def build_analysis(
         )
 
     pipeline_steps = [
-        "Normalize user profile fields (date/time).",
+        "Normalize user profile fields (gender/date/time).",
         "Determine sign source: explicit sign, sign in statement, or zodiac from birth date.",
         "Detect decision topics from statement phrases and map them to decision intents.",
         "Tokenize statement with regex.",
         "Boost intent scores using matched decision-topic hints.",
         "Apply expert-system rules over intent, sign element, and confidence.",
+        "Apply gender-conditioned classical guidance rules when relevant.",
         "Compute overlap score between statement tokens and each intent keyword set.",
         "Choose highest-scoring intent and map score to confidence.",
         "Generate symbolic decision plan and search for best path (BFS and A*).",
@@ -689,6 +721,8 @@ def build_analysis(
         "tokens": tokens,
         "sign": sign,
         "sign_source": sign_source,
+        "gender": gender,
+        "gender_guidance": gender_guidance,
         "profile": {
             "element": profile.element,
             "modality": profile.modality,
@@ -703,6 +737,7 @@ def build_analysis(
                 "INTENT_PHRASES",
                 "ELEMENT_GUIDANCE",
                 "MODALITY_GUIDANCE",
+                "GENDER_FOCUS_HINTS",
                 "EXPERT_RULES",
                 "services.decision_topics.TOPIC_HINTS",
             ],
@@ -743,6 +778,7 @@ def format_analysis_text(analysis: Dict[str, Any]) -> str:
     external_api = analysis.get("external_api", {})
     topic_hits = analysis.get("decision_topics", [])
     disclosures = analysis.get("disclosures", {})
+    gender_guidance = analysis.get("gender_guidance")
     coordinates = (external_api.get("coordinates") or {}) if external_api else {}
 
     lines = [
@@ -753,6 +789,7 @@ def format_analysis_text(analysis: Dict[str, Any]) -> str:
         lines.extend(
             [
                 f"User: {user_profile.full_name}",
+                f"Gender: {user_profile.gender.title()}",
                 f"Birth details: {user_profile.date_of_birth} at {user_profile.time_of_birth}, {user_profile.location_of_birth}",
             ]
         )
@@ -778,6 +815,11 @@ def format_analysis_text(analysis: Dict[str, Any]) -> str:
             + " -> ".join(symbolic_plan.get("selected_plan_actions", [])[:4])
             if symbolic_plan.get("selected_plan_actions")
             else "Suggested decision path: unavailable"
+        ),
+        (
+            f"Gender-specific classical note: {gender_guidance}"
+            if gender_guidance
+            else "Gender-specific classical note: not applicable for this intent."
         ),
         "Recommended guidance:",
         f"1. {recommendations[0]['message']}",
@@ -850,6 +892,13 @@ def run_cli() -> None:
         print("Full name is required.")
         full_name = input("Full name: ").strip()
 
+    gender_raw = input("Gender (M/F): ").strip()
+    normalized_gender = normalize_gender(gender_raw)
+    while not normalized_gender:
+        print("Invalid gender. Enter M or F.")
+        gender_raw = input("Gender (M/F): ").strip()
+        normalized_gender = normalize_gender(gender_raw)
+
     date_of_birth = input("Date of birth (YYYY-MM-DD or MM/DD/YYYY): ").strip()
     normalized_dob = normalize_birthdate(date_of_birth)
     while not normalized_dob:
@@ -871,6 +920,7 @@ def run_cli() -> None:
 
     user_profile = UserProfile(
         full_name=full_name,
+        gender=normalized_gender,
         date_of_birth=normalized_dob,
         time_of_birth=normalized_tob,
         location_of_birth=location_of_birth,

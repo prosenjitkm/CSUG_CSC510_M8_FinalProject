@@ -11,6 +11,7 @@ from astrology_ai import (
     detect_sign,
     format_analysis_text,
     normalize_birthdate,
+    normalize_gender,
     normalize_birthtime,
     zodiac_from_birthdate,
 )
@@ -49,6 +50,7 @@ def analyze():
         sign = (payload.get("sign") or "").strip().lower()
         session_id = (payload.get("session_id") or "default").strip()
         full_name = (payload.get("full_name") or "").strip()
+        gender = (payload.get("gender") or "").strip()
         date_of_birth = (payload.get("date_of_birth") or "").strip()
         time_of_birth = (payload.get("time_of_birth") or "").strip()
         location_of_birth = (payload.get("location_of_birth") or "").strip()
@@ -57,6 +59,8 @@ def analyze():
             return jsonify({"success": False, "error": "No statement provided"}), 400
         if not full_name:
             return jsonify({"success": False, "error": "Full name is required"}), 400
+        if not gender:
+            return jsonify({"success": False, "error": "Gender is required (male/female)."}), 400
         if not date_of_birth:
             return jsonify({"success": False, "error": "Date of birth is required"}), 400
         if not time_of_birth:
@@ -79,6 +83,15 @@ def analyze():
                 {
                     "success": False,
                     "error": "Invalid time_of_birth. Use HH:MM (24h) or hh:mm AM/PM.",
+                }
+            ), 400
+
+        normalized_gender = normalize_gender(gender)
+        if not normalized_gender:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": "Invalid gender. Use male/female (or M/F).",
                 }
             ), 400
 
@@ -108,6 +121,7 @@ def analyze():
 
         user_profile = UserProfile(
             full_name=full_name,
+            gender=normalized_gender,
             date_of_birth=normalized_dob,
             time_of_birth=normalized_tob,
             location_of_birth=location_of_birth,
@@ -141,10 +155,13 @@ def analyze():
                 "success": True,
                 "sign": sign,
                 "sign_source": sign_source,
+                "gender": normalized_gender,
                 "session_id": session_id,
                 "response": response_text,
                 "analysis_details": {
                     "sign_source": analysis["sign_source"],
+                    "gender": analysis["gender"],
+                    "gender_guidance": analysis["gender_guidance"],
                     "tokens": analysis["tokens"],
                     "intent": analysis["intent"],
                     "confidence": analysis["confidence"],

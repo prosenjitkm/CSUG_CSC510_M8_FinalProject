@@ -3,6 +3,7 @@
 ## What this program does
 `astrology_ai.py` is a self-executable Python CLI assistant that:
 - accepts a user statement in natural language,
+- requires profile details including gender, birth date, birth time, and birth location,
 - identifies likely decision focus (`career`, `love`, `money`, `health`, `family`, `general`),
 - detects decision topics/phrases (for example: `baby`, `marriage`, `job`, `finance`) and uses them to reduce ambiguity,
 - uses astrology-style logic (zodiac profile + element + modality),
@@ -82,6 +83,7 @@ Additional utility endpoint:
 - `GET /api/astrology/disclosures` -> returns disclaimer/privacy/source notes used by the app
 Required fields in UI/API:
 - full name
+- gender (`male`/`female`; CLI also accepts `M`/`F`)
 - date of birth (`YYYY-MM-DD` in web UI; API also accepts `MM/DD/YYYY`)
 - time of birth (`HH:MM` 24-hour in web UI; API also accepts `hh:mm AM/PM`)
 - location of birth
@@ -90,6 +92,7 @@ Required fields in UI/API:
 Validation behavior:
 - the app blocks submission on missing/invalid required fields
 - backend re-validates formats and returns clear errors if input is invalid
+- backend enforces gender normalization (`male` or `female`)
 - web page shows a normalized input preview before analysis
 - web result includes a transparent reasoning trace:
   - sign source (manual, statement text, or birth date)
@@ -118,7 +121,19 @@ Note: internet access is required for live geocoding. If the request fails, the 
 - The project supports two intended entry points only:
   - CLI: `python astrology_ai.py`
   - UI: `python app.py` then open `http://localhost:5000/`
+- CLI profile prompts now include required `Gender (M/F)` input.
 - If no zodiac sign is provided, sign is inferred from statement text or date of birth.
+
+### Common Indian-Astrology Inputs Not Yet Implemented
+For higher-fidelity Vedic-style calculations, many astrology systems also ask for:
+- explicit time zone and DST correction at birth
+- birth-place hierarchy (city + district/state + country) and manual latitude/longitude override
+- birth time with seconds precision
+- ayanamsha choice (for sidereal calculations)
+- house-system / chart-style preference
+- partner profile inputs for compatibility workflows
+
+Current app version focuses on a decision-support assistant and uses a simplified transparent rule pipeline, not full kundli chart mathematics.
 - Essay support files:
   - `ESSAY_OUTLINE.md` (2-4 page structure for required write-up)
   - `REFERENCES_APA.md` (APA-formatted reference suggestions)

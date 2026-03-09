@@ -17,12 +17,14 @@ function isValidTimeFormat(value) {
 
 function updatePreview() {
     const fullName = document.getElementById("astro-full-name").value.trim() || "(missing)";
+    const gender = document.getElementById("astro-gender").value || "(missing)";
     const dateOfBirth = document.getElementById("astro-dob").value || "(missing)";
     const timeOfBirth = document.getElementById("astro-tob").value || "(missing)";
     const location = document.getElementById("astro-location").value.trim() || "(missing)";
 
     previewBox.innerHTML = `
         <div class="stat-item"><span class="stat-label">Full Name</span><span class="stat-value">${fullName}</span></div>
+        <div class="stat-item"><span class="stat-label">Gender</span><span class="stat-value">${toTitleCase(gender)}</span></div>
         <div class="stat-item"><span class="stat-label">Date of Birth</span><span class="stat-value">${dateOfBirth}</span></div>
         <div class="stat-item"><span class="stat-label">Time of Birth</span><span class="stat-value">${timeOfBirth}</span></div>
         <div class="stat-item"><span class="stat-label">Location</span><span class="stat-value">${location}</span></div>
@@ -93,6 +95,8 @@ function renderAnalysisDetails(details) {
             <summary><strong>How This Conclusion Was Produced</strong></summary>
             <div style="margin-top: 12px;">
                 <p><strong>Sign Source:</strong> ${details.sign_source}</p>
+                <p><strong>Gender:</strong> ${toTitleCase(details.gender || "N/A")}</p>
+                <p><strong>Gender Guidance Rule:</strong> ${details.gender_guidance || "Not applicable for this intent"}</p>
                 <p><strong>Detected Intent:</strong> ${details.intent} (${details.confidence}% confidence)</p>
                 <p><strong>External API Used:</strong> ${external.used ? "Yes" : "No"}</p>
                 <p><strong>External Provider:</strong> ${external.provider || "N/A"}</p>
@@ -139,6 +143,7 @@ function renderAnalysisDetails(details) {
 
 async function analyzeAstrology() {
     const fullName = document.getElementById("astro-full-name").value.trim();
+    const gender = document.getElementById("astro-gender").value.trim();
     const dateOfBirth = document.getElementById("astro-dob").value;
     const timeOfBirth = document.getElementById("astro-tob").value;
     const locationOfBirth = document.getElementById("astro-location").value.trim();
@@ -148,6 +153,10 @@ async function analyzeAstrology() {
 
     if (!fullName) {
         renderMessage("error", "<strong>Error:</strong> Please enter full name.");
+        return;
+    }
+    if (!gender) {
+        renderMessage("error", "<strong>Error:</strong> Please choose gender.");
         return;
     }
     if (!dateOfBirth) {
@@ -183,6 +192,7 @@ async function analyzeAstrology() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 full_name: fullName,
+                gender: gender,
                 date_of_birth: dateOfBirth,
                 time_of_birth: timeOfBirth,
                 location_of_birth: locationOfBirth,
@@ -208,6 +218,7 @@ async function analyzeAstrology() {
             "success",
             `<div class="result-meta">
                 <div class="meta-item"><strong>Sign</strong><br>${toTitleCase(data.sign)}</div>
+                <div class="meta-item"><strong>Gender</strong><br>${toTitleCase(data.gender || "N/A")}</div>
                 <div class="meta-item"><strong>Intent</strong><br>${intent}</div>
                 <div class="meta-item"><strong>Sign Source</strong><br>${data.sign_source}</div>
                 <div class="meta-item"><strong>Session</strong><br>${data.session_id}</div>
@@ -225,6 +236,7 @@ async function analyzeAstrology() {
 
 submitBtn.addEventListener("click", analyzeAstrology);
 document.getElementById("astro-full-name").addEventListener("input", updatePreview);
+document.getElementById("astro-gender").addEventListener("change", updatePreview);
 document.getElementById("astro-dob").addEventListener("input", updatePreview);
 document.getElementById("astro-tob").addEventListener("input", updatePreview);
 document.getElementById("astro-location").addEventListener("input", updatePreview);
